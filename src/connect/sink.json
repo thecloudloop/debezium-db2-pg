@@ -1,0 +1,29 @@
+{
+   "name": "jdbc-pg-sink",
+   "config": {
+       "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+       "dialect.name": "PostgreSqlDatabaseDialect",
+       "tasks.max": "1",
+       "topics": "db2inst1.customers,db2inst1.orders,db2inst1.products,db2inst1.products_on_hand",
+       "connection.url": "jdbc:postgresql://host.docker.internal:5432/testdb",
+       "connection.user": "postgres",
+       "connection.password": "postgres",
+       "transforms" : "unwrap, changeCase, changeKeyCase",
+       "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+       "transforms.unwrap.drop.tombstones": "false",
+       "transforms.changeCase.type" : "com.github.jcustenborder.kafka.connect.transform.common.ChangeCase$Value",
+       "transforms.changeCase.from" : "UPPER_UNDERSCORE",
+       "transforms.changeCase.to" : "LOWER_UNDERSCORE",
+       "transforms.changeKeyCase.type" : "com.github.jcustenborder.kafka.connect.transform.common.ChangeCase$Key",
+       "transforms.changeKeyCase.from" : "UPPER_UNDERSCORE",
+       "transforms.changeKeyCase.to" : "LOWER_UNDERSCORE",
+       "pk.mode": "record_key",
+       "insert.mode": "upsert",
+       "delete.enabled": "true",
+       "auto.create": "true",
+       "quote.sql.identifiers": "never"
+   }
+}
+
+
+

@@ -1,0 +1,27 @@
+{
+  "name": "db2-source-connector",
+  "config": {
+    "tasks.max": "1",
+    "connector.class": "io.debezium.connector.db2.Db2Connector",
+    "database.hostname": "host.docker.internal",
+    "database.port": "50000",
+    "database.user": "db2inst1",
+    "database.password": "db2pass",
+    "database.dbname": "testdb",
+    "database.server.name": "testdb",
+    "table.include.list": "DB2INST1.(.*)",
+    "schema.history.internal.kafka.bootstrap.servers": "host.docker.internal:9092",
+    "schema.history.internal.kafka.topic": "db2inst1.history.testdb",
+    "topic.prefix": "testdb",
+    "transforms": "route, ChangeTopicCase",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "([^.]+)\\.([^.]+)\\.([^.]+)",
+    "transforms.route.replacement": "db2inst1.$3",
+    "transforms.ChangeTopicCase.type": "com.github.jcustenborder.kafka.connect.transform.common.ChangeTopicCase",
+    "transforms.ChangeTopicCase.from": "UPPER_UNDERSCORE",
+    "transforms.ChangeTopicCase.to": "LOWER_UNDERSCORE",
+    "time.precision.mode": "connect",
+    "snapshot.mode": "initial",
+    "snapshot.isolation.mode": "read_committed"
+  }
+}
