@@ -21,5 +21,5 @@ The diagram below illustrates the robust Debezium Change Data Capture (CDC) plat
 
 ![Architecture](src/images/blog1.drawio.png)
 
-Please visit ![Blog](https://thecloudloop.com/?p=2160) for additional details.
+Please visit our [Blog](https://thecloudloop.com/?p=2160) for additional details.
 
