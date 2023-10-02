@@ -1,0 +1,140 @@
+version: '3.3'
+services:
+  zookeeper:
+    image: quay.io/debezium/zookeeper:latest
+    platform: linux/amd64
+    ports:
+     - "2181:2181"
+     - "2888:2888"
+     - "3888:3888"
+    volumes:
+     - zookeeper_data:/var/lib/zookeeper/data
+     - zookeeper_log:/var/lib/zookeeper/log
+    environment:
+     - ZOOKEEPER_SERVER_ID=1
+     - ZOOKEEPER_CLIENT_PORT=2181
+     - ZOOKEEPER_TICK_TIME=2000
+     - ZOOKEEPER_INIT_LIMIT=5
+     - ZOOKEEPER_SYNC_LIMIT=2
+     - ZOOKEEPER_SERVERS=zookeeper:2888:3888
+  kafka:
+    image: quay.io/debezium/kafka:latest
+    platform: linux/amd64
+    links:
+     - zookeeper
+    depends_on:
+     - zookeeper
+    ports:
+     - "9092:9092"
+    volumes:
+     - kafka_data:/database
+    environment:
+     - KAFKA_LISTENERS=LISTENER_INT://kafka:29092,LISTENER_EXT://0.0.0.0:9092
+     - KAFKA_ADVERTISED_LISTENERS=LISTENER_INT://kafka:29092,LISTENER_EXT://host.docker.internal:9092
+     - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=LISTENER_INT:PLAINTEXT,LISTENER_EXT:PLAINTEXT
+     - KAFKA_INTER_BROKER_LISTENER_NAME=LISTENER_INT
+     - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+     - ZOOKEEPER_CONNECT=zookeeper:2181
+     - ZOOKEEPER=zookeeper:2181
+     - KAFKA_BROKER_ID=1
+     - KAFKA_LOG_RETENTION_HOURS=8
+  connect:
+    image: debeziumconnect:latest
+    platform: linux/amd64
+    build:
+     context: ./src/connect
+     args:
+      JMX_AGENT_VERSION: 0.20.0
+      DEBEZIUM_VERSION: latest
+    ports:
+     - 5005:5005
+     - 1976:1976
+     - 8083:8083
+    links:
+     - kafka
+    depends_on:
+     - kafka
+    environment:
+     - BOOTSTRAP_SERVERS=kafka:9092
+     - GROUP_ID=1
+     - CONFIG_STORAGE_TOPIC=db2pg_configs
+     - OFFSET_STORAGE_TOPIC=db2pg_offsets
+     - STATUS_STORAGE_TOPIC=db2pg_statuses
+     - ADVERTISED_HOST_NAME=$(echo $DOCKER_HOST | cut -f3  -d'/' | cut -f1 -d':')
+     - KAFKA_OPTS=-javaagent:/kafka/etc/jmx_prometheus_javaagent.jar=8080:/kafka/etc/config.yml
+     - JMXHOST=localhost
+     - JMXPORT=1976
+#  prometheus:
+#    build:
+#      context: ./src/debezium-prometheus
+#      args:
+#        PROMETHEUS_VERSION: v2.43.0
+#    ports:
+#     - 9090:9090
+#    links:
+#     - connect
+#  grafana:
+#    build:
+#      context: ./src/debezium-grafana
+#      args:
+#        GRAFANA_VERSION: 9.4.7
+#    ports:
+#     - 3000:3000
+#    links:
+#     - prometheus
+#    environment:
+#     - DS_PROMETHEUS=prometheus
+  db2:
+    build:
+      context: https://github.com/debezium/debezium-examples.git#:tutorial/debezium-db2-init/db2server
+    platform: linux/amd64
+    privileged: true
+    ports:
+     - 50000:50000
+     - 55000:55000
+    environment:
+     - LICENSE=accept
+     - DB2INSTANCE=db2inst1
+     - DB2INST1_PASSWORD=db2pass
+     - DBNAME=testdb
+     - BLU=false
+     - ENABLE_ORACLE_COMPATIBILITY=false
+     - UPDATEAVAIL=NO
+     - SAMPLEDB=true
+     - REPODB=false
+     - IS_OSXFS=true
+     - PERSISTENT_HOME=true
+     - HADR_ENABLED=false
+     - ETCD_ENDPOINT=
+     - ETCD_USERNAME=
+     - ETCD_PASSWORD=
+    volumes:
+      - db2_data:/database
+      - db2_backup:/backup
+  postgres:
+    image: postgres:15.4
+    platform: linux/amd64
+    ports:
+     - 5432:5432
+    volumes:
+      - postgres_data:/pgdata
+      - ./src/db/pg-init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    environment:
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=postgres
+     - POSTGRES_DB=testdb
+     - PGDATA=/pgdata
+volumes:
+  db2_data:
+    driver: local
+  db2_backup:
+    driver: local
+  postgres_data:
+    driver: local
+  zookeeper_data:
+    driver: local
+  zookeeper_log:
+    driver: local
+  kafka_data:
+    driver: local
+
